@@ -2,30 +2,47 @@ package handler
 
 import (
 	"github.com/ManuelGarreRos/templNotes/model"
+	"github.com/ManuelGarreRos/templNotes/repositories"
 	"github.com/ManuelGarreRos/templNotes/view/note"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
+	"net/http"
 )
 
-type NoteHandler struct{}
+func NewNoteHandler(log *zap.Logger, nr *repositories.NoteRepository) *NoteHandler {
+	return &NoteHandler{
+		log:            log,
+		NoteRepository: nr,
+	}
+}
+
+type NoteHandler struct {
+	log            *zap.Logger
+	NoteRepository *repositories.NoteRepository
+}
 
 func (n *NoteHandler) GetNotes(c echo.Context) error {
-	newNote := []model.Note{
-		{
-			ID:    1,
-			Title: "My first note",
-			Body:  "This is the body of my first note",
-		},
-		{
-			ID:    2,
-			Title: "My second note",
-			Body:  "This is the body of my second note",
-		},
-		{
-			ID:    3,
-			Title: "My third note",
-			Body:  "This is the body of my third note",
-		},
+	notes, err := n.NoteRepository.GetNotes()
+	if err != nil {
+		return err
 	}
 
-	return render(c, note.ShowNotes(newNote))
+	return render(c, note.ShowNotes(notes))
+}
+
+func (n *NoteHandler) CreateNote(c echo.Context) error {
+	newNote := &model.Note{
+		ID:    uuid.New().String(),
+		Title: c.FormValue("title"),
+		Body:  c.FormValue("body"),
+	}
+
+	err := n.NoteRepository.CreateNote(newNote)
+	if err != nil {
+		return err
+	}
+
+	http.Redirect(c.Response(), c.Request(), "/notes", http.StatusSeeOther)
+	return nil
 }

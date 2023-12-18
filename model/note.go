@@ -1,7 +1,7 @@
 package model
 
 type Note struct {
-	ID    int
+	ID    string
 	Title string
 	Body  string
 }
